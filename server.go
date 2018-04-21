@@ -8,7 +8,7 @@ import (
 	"strings"
 	"os"
 	"sync"
-	"time"
+	"io/ioutil"
 )
 
 type task struct {
@@ -28,6 +28,7 @@ func eq(x task, y task) bool{
 
 func doTheThing(connection net.Conn){
 	defer connection.Close()
+	defer saveJson()
 	recept, err := bufio.NewReader(connection).ReadString('\n')
 	if (err != nil){
 		return
@@ -89,7 +90,6 @@ func doTheThing(connection net.Conn){
 }
 
 func saveJson(){
-	for {
 	file,_ := os.Create(".jsondump")
 	mutx.Lock()
 	jazz:=jason
@@ -97,11 +97,11 @@ func saveJson(){
 	defer file.Close()
 	for i := 0; i<len(jazz);i++ {
 		jss,_ := json.Marshal(jazz[i])
-		fmt.Fprintln(file,string(jss))
+		if(!eq(task{},jazz[i])){
+			fmt.Fprintln(file,string(jss))
+		}
 	}
 	file.Close()
-	time.Sleep(10*time.Second)
-	}
 }
 
 func main(){
@@ -117,7 +117,14 @@ func main(){
 	}
 
 	//Read in json from file
-	go saveJson()
+	datas, _:=ioutil.ReadFile(".jsondump")
+	strs := strings.Split(string(datas),"{") //Splits the string along the { to divide up the json
+	for i:=0;i<len(strs);i++{
+		strs[i] = "{" + strs[i]
+		tmp := task{}
+		json.Unmarshal([]byte(strs[i]),&tmp)
+		jason=append(jason,tmp)
+	}
 	for {
 		conn, err := ln.Accept()
 		if(err != nil){
