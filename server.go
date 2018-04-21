@@ -8,6 +8,7 @@ import (
 	"strings"
 	"os"
 	"sync"
+	"time"
 )
 
 type task struct {
@@ -87,6 +88,22 @@ func doTheThing(connection net.Conn){
 	return
 }
 
+func saveJson(){
+	for {
+	file,_ := os.Create(".jsondump")
+	mutx.Lock()
+	jazz:=jason
+	mutx.Unlock()
+	defer file.Close()
+	for i := 0; i<len(jazz);i++ {
+		jss,_ := json.Marshal(jazz[i])
+		fmt.Fprintln(file,string(jss))
+	}
+	file.Close()
+	time.Sleep(10*time.Second)
+	}
+}
+
 func main(){
 	args := os.Args
 	if(len(args) != 2){
@@ -98,6 +115,9 @@ func main(){
 		fmt.Println("something went wrong when binding the socket")
 		return
 	}
+
+	//Read in json from file
+	go saveJson()
 	for {
 		conn, err := ln.Accept()
 		if(err != nil){
