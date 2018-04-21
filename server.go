@@ -26,9 +26,9 @@ func eq(x task, y task) bool{
 }
 
 func doTheThing(connection net.Conn){
+	defer connection.Close()
 	recept, err := bufio.NewReader(connection).ReadString('\n')
 	if (err != nil){
-		connection.Close()
 		return
 	}
 	strs := strings.Split(recept,"{") //Splits the string along the { to divide up the json
@@ -39,7 +39,15 @@ func doTheThing(connection net.Conn){
 		}
 	} else {
 		//Send the list of tasks
-		fmt.Println("test")
+		mutx.Lock()
+		sendSting := ""
+		for i := 0;i<len(jason);i++ {
+			jss,_ := json.Marshal(jason[i])
+			sendSting = sendSting + string(jss)
+		}
+		mutx.Unlock()
+		fmt.Fprint(connection,sendSting)
+		return
 	}
 
 	if (recept[0] == 49){
@@ -48,7 +56,16 @@ func doTheThing(connection net.Conn){
 			tmp := task{}
 			json.Unmarshal([]byte(strs[i]),&tmp)
 			mutx.Lock()
-			jason = append(jason,tmp)
+			dup := false //Check for duplicates
+			for j := 0; j < len(jason); j++{
+				if(eq(tmp,jason[j])){
+					dup = true
+					break
+				}
+			}
+			if (!dup){
+				jason = append(jason,tmp)
+			}
 			mutx.Unlock()
 		}
 	} else {
@@ -67,7 +84,6 @@ func doTheThing(connection net.Conn){
 		mutx.Unlock()
 	}
 	fmt.Println(jason)
-	connection.Close()
 	return
 }
 
