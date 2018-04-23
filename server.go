@@ -34,18 +34,21 @@ func doTheThing(connection net.Conn){
 		return
 	}
 	strs := strings.Split(recept,"{") //Splits the string along the { to divide up the json
-	if (recept[0] == 49 || recept[0] == 50){ //Ascii value for 1 (change after testing)
 		for i := 1; i < len(strs);i++{
 			//This loop goes through the split string and creates json compatible strings
 			strs[i] = "{" + strs[i]
 		}
-	} else {
+	 if (recept[0] == 51 ) {
 		//Send the list of tasks
+		kero := task{}
+		json.Unmarshal([]byte(strs[1]),&kero)
 		mutx.Lock()
 		sendSting := ""
 		for i := 0;i<len(jason);i++ {
-			jss,_ := json.Marshal(jason[i])
-			sendSting = sendSting + string(jss)
+			if(kero.User == jason[i].User){
+				jss,_ := json.Marshal(jason[i])
+				sendSting = sendSting + string(jss)
+			}
 		}
 		mutx.Unlock()
 		fmt.Fprint(connection,sendSting)
